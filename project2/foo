@@ -1,0 +1,19 @@
+apiVersion: v1
+clusters:
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://api.smaug.na.operate-first.cloud:6443
+  name: api-smaug-na-operate-first-cloud:6443
+contexts:
+- context:
+    cluster: api-smaug-na-operate-first-cloud:6443
+    namespace: default
+    user: kube:admin/api-smaug-na-operate-first-cloud:6443
+  name: default/api-smaug-na-operate-first-cloud:6443/kube:admin
+current-context: default/api-smaug-na-operate-first-cloud:6443/kube:admin
+kind: Config
+preferences: {}
+users:
+- name: kube:admin/api-smaug-na-operate-first-cloud:6443
+  user:
+    token: sha256~ujsBybDk5Q11Fi39XlB1EoPtdh7f2xruOeDaRH5zbqQ
