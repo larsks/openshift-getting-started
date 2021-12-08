@@ -51,6 +51,31 @@ $ dig +noall +short anything.apps.cluster1.dev.massopen.cloud
 128.31.28.92
 ```
 
+## A note about our hypervisor
+
+The hardware on which we're running -- `dev.massopen.cloud` -- is a single
+system with 56 cores:
+
+```
+$ nproc
+56
+```
+
+About 256GB memory:
+
+```
+$ grep MemTotal /proc/meminfo
+MemTotal:       264012544 kB
+```
+
+And around 220GB of disk space:
+
+```
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       220G   38G  171G  19% /
+```
+
 ## Starting the install
 
 ### Create the cluster
@@ -73,14 +98,16 @@ terribly original), and the base domain is `dev.massopen.cloud`:
 ### Host discovery
 
 You should now find yourself on the Host Discovery screen. This screen
-allows us to generate an ISO image which we will use to boot our
+allows us to generate an ISO image that we will use to boot our
 virtual machines and register them with the installer.
 
 Click the "Generate Discovery ISO" button. This will bring up a window
 that allows you to enter an ssh public key that will be embedded in
-the image. Paste your public key here (or click the "Browse…" button
-and select it from disk), then click the "Generate Discovery ISO"
-button.
+the image. This key will be used to configure access to the `core`
+user on the OpenShift nodes both during host discovery and once the
+systems have been installed. Paste your public key here (or click the
+"Browse…" button and select it from disk), then click the "Generate
+Discovery ISO" button.
 
 ![Generate discovery ISO](img/generate-discovery-iso.png)
 
@@ -180,8 +207,8 @@ discussed earlier (one for the API endpoint and one for the default
 ingress controller). When you first get to this screen, the "Allocate
 virtual IPs via DHCP server" box is checked. This causes OpenShift to
 dynamically allocate addresses from the DHCP server. We want to
-provide static addresses, since I have already created the necessary
-DNS entries.
+provide the static addresses discussed earlier, since these match the
+DNS entries we've created for the cluster.
 
 Place the API VIP (`128.31.28.91`) and the Ingress VIP
 (`128.31.28.92`) in the appropriate fields:
@@ -197,7 +224,7 @@ step.
 Click the "Install cluster" button to begin installing OpenShift on
 the virtual nodes.
 
-## Completing the install
+## Complete the install
 
 During the install process, the installer will attempt to reboot the
 nodes in our virtual cluster. Because of an implementation issue in
@@ -220,10 +247,129 @@ the cluster. You'll want to preserve two sets of credentials:
 
 ### Logging in on the console
 
+In your browser, navigate to
+<https://console-openshift-console.apps.cluster1.dev.massopen.cloud/>.
+You will need to click through a couple certificate warnings, because
+the cluster will initially be using a [self-signed certificate][] (one
+of our tasks in the near future will be to replace this with a valid
+certificate).
+
+[self-signed certificate]: https://en.wikipedia.org/wiki/Self-signed_certificate
+
+![Login prompt](login.png)
+
+When prompted, log in as the `kubeadmin` user using the password
+provided by the installer.
+
+You should find yourself at the OpenShift dashboard, looking at the
+"Overview" page. Assuming that everything went correctly, you should
+see green checkmarks next to "Cluster", "Control Plane", and
+"Operators":
+
+![Dashboard status](dashboard-status.png)
+
 ### Installing the command line tools
+
+Now that you've successfully logged in to the console, we need to make
+sure that you're able to interact with the cluster using the command
+line tools. You can download the tools from the cluster by selecting
+the help ("?") menu at the top of the screen and clicking on the
+"Command line tools" option.
+
+![Help menu](help-menu.png)
+
+On the following screen, download [`oc` for Linux for
+x86_64][oc-linux]. You will end up with a tarball named `oc.tar` that
+contains a single binary named `oc`. Place this somewhere in your
+`$PATH`.
+
+I like to put the binary in `$HOME/bin`:
+
+```
+$ tar -C ~/bin -xf oc.tar
+```
+
+If that directory isn't already in your `$PATH`, you can also place the binary in `/usr/local/bin`:
+
+```
+$ sudo tar -C /usr/local/bin -xf oc.tar
+```
+
+[oc-linux]: https://downloads-openshift-console.apps.cluster1.dev.massopen.cloud/amd64/linux/oc.tar
 
 ### Logging in on the command line
 
-## Making a change with Kustomize
+There are two ways to authenticate to the cluster with the command
+line tools.
 
-[cluster settings]: https://console-openshift-console.apps.cluster1.dev.massopen.cloud/settings/cluster
+#### Using the `kubeconfig` file
+
+You can use the `kubeconfig` file you downloaded from the installer.
+You just need to make `oc` aware of this file; there are several ways
+to do this:
+
+1. You can use the `--kubeconfig` command line option:
+
+    ```
+    $ oc --kubeconfig /path/to/kubeconfig ...
+    ```
+
+2. You can set the `KUBECONFIG` environment variable to set the
+   location of the `kubeconfig` file:
+
+   ```
+   $ export KUBECONFIG=/path/to/kubeconfig
+   $ oc ...
+   ```
+
+3. If you don't already have a `~/.kube/config` file, you can rename
+   your `kubeconfig` file to that location and `oc` will use it by
+   default. If you already have a default config file, it's possible
+   to merge in the configuration from the new `kubeconfig`, but I'll
+   leave the as an exercise if you're interested.
+
+#### Using an authentication token
+
+In your browser, click on the account name in the top right of the
+OpenShift console and select the "Copy login command" option:
+
+![Account menu](account-menu.png)
+
+You may need to re-authenticate, but this should bring you to a screen
+with a single "Display token" link. Clicking on this link will present
+with a variety of information, including an `oc` command line for
+authenticating to the cluster that will look something like this:
+
+```
+oc login --token=sha256~...
+--server=https://api.cluster1.dev.massopen.cloud:6443
+```
+
+Copy and paste the command line in your terminal.
+
+After authenticating with one of the above options, run the `oc whoami` command, which
+should respond like this:
+
+```
+$ oc whoami
+system:admin
+```
+
+Or:
+
+```
+$ oc whoami
+kube:admin
+```
+
+That demonstrates that you're able to successfully interact with the
+remote API.
+
+## Additional reading
+
+For more information about the structure of the `kubeconfig` file, and
+information about how to manage access to multiple clusters, see the
+following:
+
+- https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/
+- https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/
