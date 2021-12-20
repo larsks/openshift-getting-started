@@ -256,7 +256,7 @@ certificate).
 
 [self-signed certificate]: https://en.wikipedia.org/wiki/Self-signed_certificate
 
-![Login prompt](login.png)
+![Login prompt](img/login.png)
 
 When prompted, log in as the `kubeadmin` user using the password
 provided by the installer.
@@ -266,7 +266,7 @@ You should find yourself at the OpenShift dashboard, looking at the
 see green checkmarks next to "Cluster", "Control Plane", and
 "Operators":
 
-![Dashboard status](dashboard-status.png)
+![Dashboard status](img/dashboard-status.png)
 
 ### Installing the command line tools
 
@@ -276,7 +276,7 @@ line tools. You can download the tools from the cluster by selecting
 the help ("?") menu at the top of the screen and clicking on the
 "Command line tools" option.
 
-![Help menu](help-menu.png)
+![Help menu](img/help-menu.png)
 
 On the following screen, download [`oc` for Linux for
 x86_64][oc-linux]. You will end up with a tarball named `oc.tar` that
@@ -333,7 +333,7 @@ to do this:
 In your browser, click on the account name in the top right of the
 OpenShift console and select the "Copy login command" option:
 
-![Account menu](account-menu.png)
+![Account menu](img/account-menu.png)
 
 You may need to re-authenticate, but this should bring you to a screen
 with a single "Display token" link. Clicking on this link will present
